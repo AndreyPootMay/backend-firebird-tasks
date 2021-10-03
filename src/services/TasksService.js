@@ -96,15 +96,66 @@ const insert = (req, res) => {
     });
 };
 
-// Count all the taks
-function countAll(callback) {
-    Firebird.attach(connection, (err, db) => {
-        if (err) console.log(err)
+const update = (req, res) => {
+    let id = req.params.id;
+    let { name, description, done } = req.body;
+    let [, updated_at] = getTimestamps();
 
-        db.query('SELECT COUNT(*) FROM tasks WHERE active = 1', (err, result) => {
-            if (err) console.log(err)
-            callback(result[0].COUNT);
+    Firebird.attach(connection, (err, db) => {
+        if (err) throw err;
+
+        let payload = [name, description, `${done}`, updated_at, parseInt(id)];
+        console.log('Payload: ', payload);
+
+        db.query('UPDATE TASKS SET NAME=?, DESCRIPTION=?, DONE=? , UPDATED_AT=? WHERE ID=?', payload, function (err, result) {
+            if (err) {
+                console.log(err);
+            }
+
             db.detach();
+            res.json({ 'status': `Task number ${id} updated - ${updated_at}` });
+        });
+    });
+};
+
+const inactivate = (req, res) => {
+    let id = req.params.id;
+    let [, updated_at] = getTimestamps();
+
+    Firebird.attach(connection, (err, db) => {
+        if (err) throw err;
+
+        let payload = [updated_at, parseInt(id)];
+
+        db.query('UPDATE TASKS SET ACTIVE=false, UPDATED_AT=? WHERE ID=?', payload, function (err, result) {
+            if (err) {
+                console.log(err);
+            }
+
+            db.detach();
+
+            res.json({ 'status': `Task number ${id} inactivated - ${updated_at}`});
+        });
+    });
+};
+
+const reActivate = (req, res) => {
+    let id = req.params.id;
+    let [, updated_at] = getTimestamps();
+
+    Firebird.attach(connection, (err, db) => {
+        if (err) throw err;
+
+        let payload = [updated_at, parseInt(id)];
+
+        db.query('UPDATE TASKS SET ACTIVE=true, UPDATED_AT=? WHERE ID=?', payload, function (err, result) {
+            if (err) {
+                console.log(err);
+            }
+
+            db.detach();
+
+            res.json({ 'status': `Task number ${id} activated - ${updated_at}`});
         });
     });
 };
@@ -112,5 +163,8 @@ function countAll(callback) {
 module.exports = {
     findAll,
     findOne,
-    insert
+    insert,
+    update,
+    inactivate,
+    reActivate
 }
